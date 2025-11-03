@@ -10,6 +10,7 @@ class CalorieTracker {
     this._displayCaloriesBurned();
     this._displayRemainingCalories();
     this._displayCaloriesTotal();
+    this._displayProgressBar();
   }
 
   // Public methods / API
@@ -58,15 +59,44 @@ class CalorieTracker {
   // display remaining calories
   _displayRemainingCalories() {
     const caloriesRemainingEl = document.getElementById('calories-remaining');
+    const progressBarEl = document.getElementById('calorie-progress');
     const caloriesRemaining = this._calorieLimit - this._totalCalories;
 
     caloriesRemainingEl.textContent = caloriesRemaining;
+
+    // change text color based on remaining calories
+    if (caloriesRemaining <= 0) {
+      caloriesRemainingEl.parentElement.parentElement.classList.remove(
+        'bg-light'
+      );
+      caloriesRemainingEl.parentElement.parentElement.classList.add(
+        'bg-danger'
+      );
+      progressBarEl.classList.remove('bg-success');
+      progressBarEl.classList.add('bg-danger');
+    } else {
+      caloriesRemainingEl.parentElement.parentElement.classList.remove(
+        'bg-danger'
+      );
+      caloriesRemainingEl.parentElement.parentElement.classList.add('bg-light');
+      progressBarEl.classList.remove('bg-danger');
+      progressBarEl.classList.add('bg-success');
+    }
   }
+  // Display progress bar
+  _displayProgressBar() {
+    const progressBarEl = document.getElementById('calorie-progress');
+    const progress = (this._totalCalories / this._calorieLimit) * 100;
+    const width = Math.min(progress, 100);
+    progressBarEl.style.width = `${width}%`;
+  }
+  // Render when the app state changes
   _render() {
     this._displayCaloriesTotal();
     this._displayCaloriesConsumed();
     this._displayCaloriesBurned();
     this._displayRemainingCalories();
+    this._displayProgressBar();
   }
 }
 
@@ -86,18 +116,66 @@ class Workout {
   }
 }
 
-const tracker = new CalorieTracker();
+class App {
+  constructor() {
+    this._tracker = new CalorieTracker();
+    // catch the input from meal form
+    document
+      .getElementById('meal-form')
+      .addEventListener('submit', this._newMeal.bind(this));
 
-const workout1 = new Workout('pushup', 200);
-tracker.addWorkout(workout1);
-const workout2 = new Workout('pullup', 120);
-tracker.addWorkout(workout2);
+    // catch the input from workout form
+    document
+      .getElementById('workout-form')
+      .addEventListener('submit', this._newWorkout.bind(this));
+  }
 
-const meal1 = new Meal('Breakfast', 300);
-tracker.addMeal(meal1);
-const meal2 = new Meal('Lunch', 100);
-tracker.addMeal(meal2);
+  _newMeal(e) {
+    e.preventDefault();
+    const name = document.getElementById('meal-name');
+    const calories = document.getElementById('meal-calories');
 
-console.log(tracker._totalCalories);
-console.log(tracker._meals); // Output: 100
-console.log(tracker._workouts); // Output: 100
+    if (name.value === '' || calories.value === '') {
+      alert('Please fill in all fields');
+      return;
+    }
+    const meal = new Meal(name.value, parseInt(calories.value));
+    this._tracker.addMeal(meal);
+
+    name.value = '';
+    calories.value = '';
+
+    // collaose the meal form after submission
+    const mealCollapse = document.getElementById('collapse-meal');
+    const bsMealCollapse = new bootstrap.Collapse(mealCollapse, {
+      toggle: true,
+    });
+    bsMealCollapse.hide();
+  }
+
+  _newWorkout(e) {
+    e.preventDefault();
+
+    const name = document.getElementById('workout-name');
+    const calories = document.getElementById('workout-calories');
+
+    if (name.value === '' || calories.value === '') {
+      alert('Please fill in all fields');
+      return;
+    }
+    const workout = new Workout(name.value, parseInt(calories.value));
+    this._tracker.addWorkout(workout);
+
+    name.value = '';
+    calories.value = '';
+
+    // collapse the workout form after submission
+    const workoutCollapse = document.getElementById('collapse-workout');
+    const bsWorkoutCollapse = new bootstrap.Collapse(workoutCollapse, {
+      toggle: true,
+    });
+    bsWorkoutCollapse.hide();
+  }
+}
+
+const app = new App();
