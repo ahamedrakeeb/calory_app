@@ -17,13 +17,37 @@ class CalorieTracker {
   addMeal(meal) {
     this._meals.push(meal);
     this._totalCalories += meal.calories;
+    this._displayMeals(meal);
     this._render();
   }
 
   addWorkout(workout) {
     this._workouts.push(workout);
     this._totalCalories -= workout.calories;
+    this._displayWorkouts(workout);
     this._render();
+  }
+
+  // remove meal
+  removeMeal(id) {
+    const index = this._meals.findIndex((meal) => meal.id === id);
+    if (index !== -1) {
+      const meal = this._meals[index];
+      this._meals.splice(index, 1);
+      this._totalCalories -= meal.calories;
+      this._render();
+    }
+  }
+
+  // remove workout
+  removeWorkout(id) {
+    const index = this._workouts.findIndex((workout) => workout.id === id);
+    if (index !== -1) {
+      const workout = this._workouts[index];
+      this._workouts.splice(index, 1);
+      this._totalCalories += workout.calories;
+      this._render();
+    }
   }
 
   // Private methods / API
@@ -90,6 +114,52 @@ class CalorieTracker {
     const width = Math.min(progress, 100);
     progressBarEl.style.width = `${width}%`;
   }
+
+  // Display meals
+  _displayMeals(meal) {
+    const mealsEl = document.getElementById('meal-items');
+    const mealEl = document.createElement('div');
+    mealEl.classList.add('card', 'my-2');
+    mealEl.setAttribute('data-id', meal.id);
+    mealEl.innerHTML = `<div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <h4 class="mx-1">${meal.name}</h4>
+                  <div
+                    class="fs-1 bg-primary text-white text-center rounded-2 px-2 px-sm-5"
+                  >
+                    ${meal.calories} 
+                  </div>
+                  <button class="delete btn btn-danger btn-sm mx-2">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>`;
+    mealsEl.appendChild(mealEl);
+  }
+
+  // Display workouts
+  _displayWorkouts(workout) {
+    const workoutsEl = document.getElementById('workout-items');
+    const workoutEl = document.createElement('div');
+
+    workoutEl.classList.add('card', 'my-2');
+    workoutEl.setAttribute('data-id', workout.id);
+    workoutEl.innerHTML = `<div class="card-body">
+                <div class="d-flex align-items-center justify-content-between">
+                  <h4 class="mx-1">${workout.name}</h4>
+                  <div
+                    class="fs-1 bg-secondary text-white text-center rounded-2 px-2 px-sm-5"
+                  >
+                    ${workout.calories}
+                  </div>
+                  <button class="delete btn btn-danger btn-sm mx-2">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+              </div>`;
+    workoutsEl.appendChild(workoutEl);
+  }
+
   // Render when the app state changes
   _render() {
     this._displayCaloriesTotal();
@@ -122,59 +192,65 @@ class App {
     // catch the input from meal form
     document
       .getElementById('meal-form')
-      .addEventListener('submit', this._newMeal.bind(this));
+      .addEventListener('submit', this._newItem.bind(this, 'meal'));
 
     // catch the input from workout form
     document
       .getElementById('workout-form')
-      .addEventListener('submit', this._newWorkout.bind(this));
+      .addEventListener('submit', this._newItem.bind(this, 'workout'));
+
+    // target the element to delete meal
+    document
+      .getElementById('meal-items')
+      .addEventListener('click', this._removeItem.bind(this, 'meal'));
+
+    // target the element to delete workout
+    document
+      .getElementById('workout-items')
+      .addEventListener('click', this._removeItem.bind(this, 'workout'));
   }
 
-  _newMeal(e) {
+  _newItem(type, e) {
     e.preventDefault();
-    const name = document.getElementById('meal-name');
-    const calories = document.getElementById('meal-calories');
+    const name = document.getElementById(`${type}-name`);
+    const calories = document.getElementById(`${type}-calories`);
 
     if (name.value === '' || calories.value === '') {
       alert('Please fill in all fields');
       return;
     }
-    const meal = new Meal(name.value, parseInt(calories.value));
-    this._tracker.addMeal(meal);
+    if (type === 'meal') {
+      const meal = new Meal(name.value, parseInt(calories.value));
+      this._tracker.addMeal(meal);
+    } else {
+      const workout = new Workout(name.value, parseInt(calories.value));
+      this._tracker.addWorkout(workout);
+    }
 
     name.value = '';
     calories.value = '';
 
-    // collaose the meal form after submission
-    const mealCollapse = document.getElementById('collapse-meal');
-    const bsMealCollapse = new bootstrap.Collapse(mealCollapse, {
+    // collapse the item form after submission
+    const ItemCollapse = document.getElementById(`collapse-${type}`);
+    const bsItemCollapse = new bootstrap.Collapse(ItemCollapse, {
       toggle: true,
     });
-    bsMealCollapse.hide();
+    bsItemCollapse.hide();
   }
 
-  _newWorkout(e) {
-    e.preventDefault();
-
-    const name = document.getElementById('workout-name');
-    const calories = document.getElementById('workout-calories');
-
-    if (name.value === '' || calories.value === '') {
-      alert('Please fill in all fields');
-      return;
+  _removeItem(type, e) {
+    if (
+      e.target.classList.contains('delete') ||
+      e.target.classList.contains('fa-xmark')
+    ) {
+      if (confirm('Are you sure?')) {
+        const id = e.target.closest('.card').getAttribute('data-id');
+        type === 'meal'
+          ? this._tracker.removeMeal(id)
+          : this._tracker.removeWorkout(id);
+        e.target.closest('.card').remove();
+      }
     }
-    const workout = new Workout(name.value, parseInt(calories.value));
-    this._tracker.addWorkout(workout);
-
-    name.value = '';
-    calories.value = '';
-
-    // collapse the workout form after submission
-    const workoutCollapse = document.getElementById('collapse-workout');
-    const bsWorkoutCollapse = new bootstrap.Collapse(workoutCollapse, {
-      toggle: true,
-    });
-    bsWorkoutCollapse.hide();
   }
 }
 
